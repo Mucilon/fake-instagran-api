@@ -1,6 +1,4 @@
-import {Schema, model, Document} from 'mongoose';
-import {IPost} from '../modules/post/interface'
-
+import { Schema, model, Document } from 'mongoose'
 
 interface IPostModel extends Document{
     author: string,
@@ -13,17 +11,15 @@ interface IPostModel extends Document{
 }
 
 const PostSchema = new Schema({
-    author: String,
-    place: String,
-    description: String,
-    hashtags: String,
-    image: String,
-    likes: {
-        type: Number,
-        default: 0,
-    }
-},{timestamps: true});
+  author: String,
+  place: String,
+  description: String,
+  hashtags: String,
+  image: String,
+  likes: {
+    type: Number,
+    default: 0
+  }
+}, { timestamps: true })
 
-
-
-export default model<IPostModel>('modelPost',PostSchema);
+export default model<IPostModel>('modelPost', PostSchema)

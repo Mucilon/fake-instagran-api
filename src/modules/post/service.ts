@@ -1,14 +1,13 @@
-import {IPost,  createPost, createPosts, createPostById} from './interface';
-import modelPost from '../../models/post';
-import sharp from 'sharp';
-import path from 'path';
-import fs from 'fs';
-import Socket from '../../api/socket';
+import { IPost, createPost, createPosts, createPostById } from './interface'
+import modelPost from '../../models/post'
+import sharp from 'sharp'
+import path from 'path'
+import fs from 'fs'
+import Socket from '../../api/socket'
 
+// The service class serves to implement our CRUDS or our Business Rules
 
-//The service class serves to implement our CRUDS or our Business Rules
-
-class Post implements IPost{
+class Post implements IPost {
     public _id?: string;
     public author: string;
     public place: string;
@@ -17,62 +16,50 @@ class Post implements IPost{
     public image: string;
     public likes: number;
 
-    constructor(){}
+    constructor () {}
 
-    async create( post: any, file: any){
+    async create (post: any, file: any) {
+      const { author, place, description, hashtags } = post
+      const { filename: image } = file
 
-        const { author, place, description, hashtags} = post;
-        const { filename: image} = file;
+      const [name] = image.split('.')
+      const filename = `${name}.jpg`
 
-        const [name] = image.split('.');
-        const filename = `${name}.jpg`
-
-        await sharp(file.path)
+      await sharp(file.path)
         .resize(500)
-        .jpeg({quality:70})
+        .jpeg({ quality: 70 })
         .toFile(path.resolve(file.destination, 'resized', filename))
 
+      fs.unlinkSync(file.path)
 
-        fs.unlinkSync(file.path);
+      return modelPost.create({
+        author,
+        place,
+        description,
+        hashtags,
+        image: filename
+      }).then(thisPost => {
+        Socket.io.emit('post', thisPost)
 
-            
-        return modelPost.create({
-            author,
-            place,
-            description,
-            hashtags,
-            image: filename,
-        }).then(thisPost => {
-            Socket.io.emit('post',thisPost);
-
-            return thisPost;
-        });
-
+        return thisPost
+      })
     }
 
-    getAll(): Promise<IPost[]>{
-  
-        return modelPost.find().sort('-createdAt').then(createPosts);
-
+    getAll (): Promise<IPost[]> {
+      return modelPost.find().sort('-createdAt').then(createPosts)
     }
 
-    addLike(id: string) {
+    addLike (id: string) {
+      return modelPost.findById(id).then(thisPost => {
+        thisPost.likes += 1
 
-        return modelPost.findById(id).then(thisPost => {
+        thisPost.save()
 
-        
-            thisPost.likes += 1;
+        Socket.io.emit('like', thisPost)
 
-            thisPost.save();
-
-            Socket.io.emit('like',thisPost);
-            
-            return thisPost;
-        });
-
+        return thisPost
+      })
     }
-
-
 }
 
-export default new Post();
+export default new Post()
